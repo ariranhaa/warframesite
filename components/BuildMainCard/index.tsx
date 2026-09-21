@@ -3,7 +3,7 @@ import Image from "next/image";
 
 export default function BuildCard() {
   return (
-    <Link href="/newbuild">
+    <Link href="/builds">
       <div className="group relative w-full cursor-pointer overflow-hidden rounded-xl">
         <Image
           src="/images/koumeipic.png"
