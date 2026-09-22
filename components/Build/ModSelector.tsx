@@ -53,29 +53,29 @@ export default function ModSelector({
 
         {/* Lista */}
         <div className="min-h-0 flex-1 overflow-y-auto p-4">
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
             {filteredMods.map((mod) => (
               <button
                 key={mod.uniqueName}
                 type="button"
                 onClick={() => onSelect(mod)}
-                className="group overflow-hidden rounded-lg bg-slate-900 text-left transition hover:-translate-y-1 hover:bg-slate-700"
+                className="group relative overflow-hidden rounded-xl bg-black text-left"
               >
-                <div className="aspect-[4/5] w-full overflow-hidden bg-slate-950">
-                  <img
-                    src={`https://cdn.warframestat.us/img/${mod.imageName}`}
-                    alt={mod.name}
-                    className="h-full w-full object-contain transition duration-200 group-hover:scale-105"
-                  />
-                </div>
+                <img
+                  src={`https://cdn.warframestat.us/img/${mod.imageName}`}
+                  alt={mod.name}
+                  className="block aspect-[4/5] w-full object-contain transition-transform duration-200 group-hover:scale-105"
+                />
 
-                <div className="p-3">
-                  <h3 className="truncate font-bold">{mod.name}</h3>
+                <div className="absolute inset-x-0 bottom-0 bg-black/80 p-2 backdrop-blur-sm">
+                  <p className="truncate text-sm font-bold text-white">
+                    {mod.name}
+                  </p>
 
-                  <div className="mt-1 flex items-center justify-between">
-                    <span className="text-xs text-slate-400">{mod.rarity}</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-300">{mod.rarity}</span>
 
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-slate-400">
                       {mod.polarity}
                     </span>
                   </div>
