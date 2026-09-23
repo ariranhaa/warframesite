@@ -3,11 +3,7 @@
 import { useState } from "react";
 import type { Mod } from "@/lib/warframe-api";
 import ModSelector from "./ModSelector";
-
-type EquippedMod = {
-  mod: Mod;
-  rank: number;
-};
+import { EquippedMod } from "@/lib/build-calculations";
 
 type ModSlot = {
   id: number;
@@ -26,6 +22,7 @@ export default function ModSlots({ mods }: ModSlotsProps) {
   );
 
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
+  const [editingSlot, setEditingSlot] = useState<number | null>(null);
 
   function handleSlotClick(id: number) {
     setSelectedSlot(id);
@@ -57,15 +54,42 @@ export default function ModSlots({ mods }: ModSlotsProps) {
     setSelectedSlot(null);
   }
 
+  function handleRankChange(slotId: number, change: number) {
+    setSlots((currentSlots) =>
+      currentSlots.map((slot) => {
+        if (slot.id !== slotId || !slot.mod) {
+          return slot;
+        }
+
+        const maxRank = slot.mod.mod.levelStats.length - 1;
+
+        const newRank = Math.max(0, Math.min(maxRank, slot.mod.rank + change));
+
+        return {
+          ...slot,
+          mod: {
+            ...slot.mod,
+            rank: newRank,
+          },
+        };
+      }),
+    );
+  }
+
   return (
     <>
       <div className="grid grid-cols-4 gap-3">
         {slots.map((slot) => (
-          <button
+          <div
             key={slot.id}
-            type="button"
-            onClick={() => handleSlotClick(slot.id)}
-            className="flex aspect-square items-center justify-center rounded-lg border-2 border-dashed border-slate-600 bg-slate-900 transition hover:border-slate-400 hover:bg-slate-700"
+            onClick={() => {
+              if (slot.mod) {
+                setEditingSlot(editingSlot === slot.id ? null : slot.id);
+              } else {
+                handleSlotClick(slot.id);
+              }
+            }}
+            className="flex aspect-square cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-slate-600 bg-slate-900 transition hover:border-slate-400 hover:bg-slate-700"
           >
             {slot.mod ? (
               <div className="relative h-full w-full overflow-hidden rounded-xl">
@@ -80,7 +104,39 @@ export default function ModSlots({ mods }: ModSlotsProps) {
                     {slot.mod.mod.name}
                   </span>
 
-                  <p className="text-xs text-slate-300">Rank {slot.mod.rank}</p>
+                  {editingSlot === slot.id ? (
+                    <div className="mt-1 flex items-center justify-center gap-3">
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleRankChange(slot.id, -1);
+                        }}
+                        className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-700 text-white transition hover:bg-slate-600"
+                      >
+                        −
+                      </button>
+
+                      <span className="min-w-16 text-center text-xs text-slate-300">
+                        Rank {slot.mod.rank}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleRankChange(slot.id, 1);
+                        }}
+                        className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-700 text-white transition hover:bg-slate-600"
+                      >
+                        +
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="mt-1 text-xs text-slate-300">
+                      Rank {slot.mod.rank}
+                    </p>
+                  )}
 
                   {slot.mod.mod.levelStats?.[slot.mod.rank]?.stats?.map(
                     (stat: string, index: number) => (
@@ -98,7 +154,7 @@ export default function ModSlots({ mods }: ModSlotsProps) {
             ) : (
               <span className="text-2xl text-slate-500">+</span>
             )}
-          </button>
+          </div>
         ))}
       </div>
 
