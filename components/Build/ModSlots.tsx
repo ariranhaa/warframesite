@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Mod } from "@/lib/warframe-api";
 import ModSelector from "./ModSelector";
 import { EquippedMod } from "@/lib/build-calculations";
@@ -11,9 +11,10 @@ type ModSlot = {
 };
 type ModSlotsProps = {
   mods: Mod[];
+  onModsChange: (equippedMods: EquippedMod[]) => void;
 };
 
-export default function ModSlots({ mods }: ModSlotsProps) {
+export default function ModSlots({ mods, onModsChange }: ModSlotsProps) {
   const [slots, setSlots] = useState<ModSlot[]>(
     Array.from({ length: 8 }, (_, index) => ({
       id: index,
@@ -23,6 +24,14 @@ export default function ModSlots({ mods }: ModSlotsProps) {
 
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [editingSlot, setEditingSlot] = useState<number | null>(null);
+
+  useEffect(() => {
+    const equippedMods = slots
+      .filter((slot) => slot.mod !== null)
+      .map((slot) => slot.mod!);
+
+    onModsChange(equippedMods);
+  }, [slots, onModsChange]);
 
   function handleSlotClick(id: number) {
     setSelectedSlot(id);

@@ -101,9 +101,70 @@ function getModEffects(mod: Mod, rank: number): ModEffects {
   console.log("Rank:", rank);
   console.log("Stats:", stats);
 
-  return {};
-}
+  const effects: ModEffects = {};
 
+  for (const stat of stats) {
+    const valueMatch = stat.match(/([+-]?\d+(?:\.\d+)?)%/);
+
+    if (!valueMatch) {
+      continue;
+    }
+
+    const value = Number(valueMatch[1]);
+
+    if (stat.includes("Damage")) {
+      effects.damage = value;
+    }
+
+    if (stat.includes("Impact")) {
+      effects.impact = value;
+    }
+
+    if (stat.includes("Puncture")) {
+      effects.puncture = value;
+    }
+
+    if (stat.includes("Slash")) {
+      effects.slash = value;
+    }
+
+    if (stat.includes("Heat")) {
+      effects.heat = value;
+    }
+
+    if (stat.includes("Cold")) {
+      effects.cold = value;
+    }
+
+    if (stat.includes("Electricity")) {
+      effects.electricity = value;
+    }
+
+    if (stat.includes("Toxin")) {
+      effects.toxin = value;
+    }
+
+    if (stat.includes("Critical Chance")) {
+      effects.criticalChance = value;
+    }
+
+    if (stat.includes("Status Chance")) {
+      effects.statusChance = value;
+    }
+
+    if (stat.includes("Fire Rate")) {
+      effects.fireRate = value;
+    }
+
+    if (stat.includes("Multishot")) {
+      effects.multishot = value;
+    }
+  }
+
+  console.log("EFFECTS:", effects);
+
+  return effects;
+}
 export function calculateWeaponStats(
   weapon: Weapon,
   equippedMods: EquippedMod[],

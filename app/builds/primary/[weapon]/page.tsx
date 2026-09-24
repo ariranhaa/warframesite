@@ -5,7 +5,7 @@ import {
   getCompatibleWeaponMods,
   removeDuplicateMods,
 } from "@/lib/warframe-api";
-import ModSlots from "@/components/Build/ModSlots";
+import BuildCalculator from "@/components/Build/BuildCalculator";
 
 type WeaponPageProps = {
   params: Promise<{
@@ -94,7 +94,7 @@ export default async function WeaponPage({ params }: WeaponPageProps) {
       <section className="mt-8 rounded-xl bg-slate-800 p-6">
         <h2 className="mb-5 text-2xl font-bold">Mods</h2>
 
-        <ModSlots mods={compatibleMods} />
+        <BuildCalculator weapon={weaponData} mods={uniqueMods} />
       </section>
     </div>
   );
