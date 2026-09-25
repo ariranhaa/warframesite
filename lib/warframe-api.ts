@@ -105,6 +105,7 @@ export type Mod = {
 
   isAugment: boolean;
   isPrime: boolean;
+  isUtility: boolean;
 
   levelStats: ModLevelStats[];
 };
@@ -170,7 +171,36 @@ export function getCompatibleWeaponMods(mods: Mod[], weapon: Weapon): Mod[] {
       return false;
     }
 
-    return mod.compatName === weapon.type;
+    // Compatibilidade original
+    if (mod.compatName.toLowerCase() === weapon.type.toLowerCase()) {
+      return true;
+    }
+
+    // Mods de Primary
+    if (
+      weapon.category === "Primary" &&
+      mod.compatName.toUpperCase() === "PRIMARY"
+    ) {
+      return true;
+    }
+
+    // Mods de Secondary
+    if (
+      weapon.category === "Secondary" &&
+      mod.compatName.toUpperCase() === "SECONDARY"
+    ) {
+      return true;
+    }
+
+    // Mods de Melee
+    if (
+      weapon.category === "Melee" &&
+      mod.compatName.toUpperCase() === "MELEE"
+    ) {
+      return true;
+    }
+
+    return false;
   });
 }
 

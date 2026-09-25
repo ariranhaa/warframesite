@@ -5,20 +5,29 @@ import type { Mod } from "@/lib/warframe-api";
 
 type ModSelectorProps = {
   mods: Mod[];
+  exilusOnly: boolean;
   onSelect: (mod: Mod) => void;
   onClose: () => void;
 };
 
 export default function ModSelector({
   mods,
+  exilusOnly,
   onSelect,
   onClose,
 }: ModSelectorProps) {
   const [search, setSearch] = useState("");
 
-  const filteredMods = Array.from(
+  const visibleMods = Array.from(
     new Map(
       mods
+        .filter((mod) => {
+          if (exilusOnly) {
+            return mod.isUtility === true;
+          }
+
+          return mod.isUtility !== true;
+        })
         .filter((mod) => mod.name.toLowerCase().includes(search.toLowerCase()))
         .map((mod) => [mod.name.toLowerCase(), mod]),
     ).values(),
@@ -54,7 +63,7 @@ export default function ModSelector({
         {/* Lista */}
         <div className="min-h-0 flex-1 overflow-y-auto p-4">
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-            {filteredMods.map((mod) => (
+            {visibleMods.map((mod) => (
               <button
                 key={mod.uniqueName}
                 type="button"
@@ -84,7 +93,7 @@ export default function ModSelector({
             ))}
           </div>
 
-          {filteredMods.length === 0 && (
+          {visibleMods.length === 0 && (
             <p className="py-10 text-center text-slate-400">
               Nenhum mod encontrado.
             </p>

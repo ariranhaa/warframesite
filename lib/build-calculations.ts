@@ -112,8 +112,12 @@ function getModEffects(mod: Mod, rank: number): ModEffects {
 
     const value = Number(valueMatch[1]);
 
-    if (stat.includes("Damage")) {
+    if (stat.includes("Damage") && !stat.includes("Critical")) {
       effects.damage = value;
+    }
+
+    if (stat.includes("Critical Damage")) {
+      effects.criticalMultiplier = value;
     }
 
     if (stat.includes("Impact")) {
@@ -165,13 +169,105 @@ function getModEffects(mod: Mod, rank: number): ModEffects {
 
   return effects;
 }
+
 export function calculateWeaponStats(
   weapon: Weapon,
   equippedMods: EquippedMod[],
 ): WeaponStats {
-  equippedMods.forEach(({ mod, rank }) => {
-    getModEffects(mod, rank);
-  });
+  const stats = getBaseWeaponStats(weapon);
 
-  return getBaseWeaponStats(weapon);
+  let damageMultiplier = 0;
+
+  const elementalMods: {
+    type: "heat" | "cold" | "electricity" | "toxin";
+    value: number;
+  }[] = [];
+
+  for (const { mod, rank } of equippedMods) {
+    const effects = getModEffects(mod, rank);
+
+    if (effects.damage) {
+      damageMultiplier += effects.damage / 100;
+    }
+
+    if (effects.criticalChance) {
+      stats.criticalChance *= 1 + effects.criticalChance / 100;
+    }
+
+    if (effects.statusChance) {
+      stats.statusChance *= 1 + effects.statusChance / 100;
+    }
+
+    if (effects.fireRate) {
+      stats.fireRate *= 1 + effects.fireRate / 100;
+    }
+
+    if (effects.multishot) {
+      stats.multishot *= 1 + effects.multishot / 100;
+    }
+
+    if (effects.heat) {
+      elementalMods.push({
+        type: "heat",
+        value: effects.heat / 100,
+      });
+    }
+
+    if (effects.cold) {
+      elementalMods.push({
+        type: "cold",
+        value: effects.cold / 100,
+      });
+    }
+
+    if (effects.electricity) {
+      elementalMods.push({
+        type: "electricity",
+        value: effects.electricity / 100,
+      });
+    }
+
+    if (effects.toxin) {
+      elementalMods.push({
+        type: "toxin",
+        value: effects.toxin / 100,
+      });
+    }
+  }
+
+  function applyElementalMods(
+    stats: WeaponStats,
+    elementalMods: {
+      type: "heat" | "cold" | "electricity" | "toxin";
+      value: number;
+    }[],
+  ) {
+    const baseDamage =
+      stats.damage.impact +
+      stats.damage.puncture +
+      stats.damage.slash +
+      stats.damage.heat +
+      stats.damage.cold +
+      stats.damage.electricity +
+      stats.damage.toxin;
+
+    for (const elementalMod of elementalMods) {
+      const elementalDamage = baseDamage * elementalMod.value;
+
+      stats.damage[elementalMod.type] += elementalDamage;
+    }
+  }
+
+  // Bônus de dano geral
+  if (damageMultiplier !== 0) {
+    for (const damageType of Object.keys(stats.damage) as Array<
+      keyof DamageStats
+    >) {
+      stats.damage[damageType] *= 1 + damageMultiplier;
+    }
+  }
+  console.log("ELEMENTAL MODS:", elementalMods);
+  applyElementalMods(stats, elementalMods);
+
+  return stats;
 }
