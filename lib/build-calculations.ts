@@ -24,39 +24,36 @@ export type DamageStats = {
 
 export type WeaponStats = {
   damage: DamageStats;
-
   criticalChance: number;
   criticalMultiplier: number;
   statusChance: number;
-
   fireRate: number;
   multishot: number;
-
   magazineSize: number;
   reloadTime: number;
 };
 
 type ModEffects = {
   damage?: number;
-
   impact?: number;
   puncture?: number;
   slash?: number;
-
   heat?: number;
   cold?: number;
   electricity?: number;
   toxin?: number;
-
   criticalChance?: number;
   criticalMultiplier?: number;
   statusChance?: number;
-
   fireRate?: number;
   multishot?: number;
-
   magazineSize?: number;
   reloadSpeed?: number;
+};
+
+type ElementalMod = {
+  type: "heat" | "cold" | "electricity" | "toxin";
+  value: number;
 };
 
 export function getBaseWeaponStats(weapon: Weapon): WeaponStats {
@@ -81,10 +78,8 @@ export function getBaseWeaponStats(weapon: Weapon): WeaponStats {
     criticalChance: weapon.criticalChance,
     criticalMultiplier: weapon.criticalMultiplier,
     statusChance: weapon.procChance,
-
     fireRate: weapon.fireRate,
     multishot: weapon.multishot,
-
     magazineSize: weapon.magazineSize,
     reloadTime: weapon.reloadTime,
   };
@@ -170,6 +165,113 @@ function getModEffects(mod: Mod, rank: number): ModEffects {
   return effects;
 }
 
+function combineElementalMods(
+  damage: DamageStats,
+  elementalMods: ElementalMod[],
+  baseDamage: number,
+) {
+  // Agrupa elementos repetidos.
+  // A posição do primeiro elemento é preservada.
+  const uniqueElements: ElementalMod[] = [];
+
+  for (const elementalMod of elementalMods) {
+    const existing = uniqueElements.find(
+      (element) => element.type === elementalMod.type,
+    );
+
+    if (existing) {
+      existing.value += elementalMod.value;
+    } else {
+      uniqueElements.push({
+        ...elementalMod,
+      });
+    }
+  }
+
+  const remaining = [...uniqueElements];
+
+  function getCombination(
+    first: ElementalMod["type"],
+    second: ElementalMod["type"],
+  ): keyof DamageStats | null {
+    if (
+      (first === "heat" && second === "cold") ||
+      (first === "cold" && second === "heat")
+    ) {
+      return "blast";
+    }
+
+    if (
+      (first === "heat" && second === "electricity") ||
+      (first === "electricity" && second === "heat")
+    ) {
+      return "radiation";
+    }
+
+    if (
+      (first === "heat" && second === "toxin") ||
+      (first === "toxin" && second === "heat")
+    ) {
+      return "gas";
+    }
+
+    if (
+      (first === "cold" && second === "electricity") ||
+      (first === "electricity" && second === "cold")
+    ) {
+      return "magnetic";
+    }
+
+    if (
+      (first === "cold" && second === "toxin") ||
+      (first === "toxin" && second === "cold")
+    ) {
+      return "viral";
+    }
+
+    if (
+      (first === "electricity" && second === "toxin") ||
+      (first === "toxin" && second === "electricity")
+    ) {
+      return "corrosive";
+    }
+
+    return null;
+  }
+
+  while (remaining.length >= 2) {
+    const first = remaining[0];
+
+    let secondIndex = -1;
+    let combination: keyof DamageStats | null = null;
+
+    for (let i = 1; i < remaining.length; i++) {
+      const result = getCombination(first.type, remaining[i].type);
+
+      if (result) {
+        secondIndex = i;
+        combination = result;
+        break;
+      }
+    }
+
+    if (!combination || secondIndex === -1) {
+      break;
+    }
+
+    const second = remaining[secondIndex];
+
+    damage[combination] += baseDamage * (first.value + second.value);
+
+    remaining.splice(secondIndex, 1);
+    remaining.splice(0, 1);
+  }
+
+  // Elementos que não foram combinados
+  for (const element of remaining) {
+    damage[element.type] += baseDamage * element.value;
+  }
+}
 export function calculateWeaponStats(
   weapon: Weapon,
   equippedMods: EquippedMod[],
@@ -178,34 +280,37 @@ export function calculateWeaponStats(
 
   let damageMultiplier = 0;
 
-  const elementalMods: {
-    type: "heat" | "cold" | "electricity" | "toxin";
-    value: number;
-  }[] = [];
+  const elementalMods: ElementalMod[] = [];
 
   for (const { mod, rank } of equippedMods) {
     const effects = getModEffects(mod, rank);
 
+    // Dano geral
     if (effects.damage) {
       damageMultiplier += effects.damage / 100;
     }
 
+    // Chance crítica
     if (effects.criticalChance) {
       stats.criticalChance *= 1 + effects.criticalChance / 100;
     }
 
+    // Chance de status
     if (effects.statusChance) {
       stats.statusChance *= 1 + effects.statusChance / 100;
     }
 
+    // Fire rate
     if (effects.fireRate) {
       stats.fireRate *= 1 + effects.fireRate / 100;
     }
 
+    // Multishot
     if (effects.multishot) {
       stats.multishot *= 1 + effects.multishot / 100;
     }
 
+    // Elementos
     if (effects.heat) {
       elementalMods.push({
         type: "heat",
@@ -235,29 +340,6 @@ export function calculateWeaponStats(
     }
   }
 
-  function applyElementalMods(
-    stats: WeaponStats,
-    elementalMods: {
-      type: "heat" | "cold" | "electricity" | "toxin";
-      value: number;
-    }[],
-  ) {
-    const baseDamage =
-      stats.damage.impact +
-      stats.damage.puncture +
-      stats.damage.slash +
-      stats.damage.heat +
-      stats.damage.cold +
-      stats.damage.electricity +
-      stats.damage.toxin;
-
-    for (const elementalMod of elementalMods) {
-      const elementalDamage = baseDamage * elementalMod.value;
-
-      stats.damage[elementalMod.type] += elementalDamage;
-    }
-  }
-
   // Bônus de dano geral
   if (damageMultiplier !== 0) {
     for (const damageType of Object.keys(stats.damage) as Array<
@@ -266,8 +348,19 @@ export function calculateWeaponStats(
       stats.damage[damageType] *= 1 + damageMultiplier;
     }
   }
+
+  // Dano base usado para calcular os elementos
+  const baseDamage = Object.values(stats.damage).reduce(
+    (total, value) => total + value,
+    0,
+  );
+
   console.log("ELEMENTAL MODS:", elementalMods);
-  applyElementalMods(stats, elementalMods);
+
+  // Combinação dos elementos
+  combineElementalMods(stats.damage, elementalMods, baseDamage);
+
+  console.log("DAMAGE AFTER ELEMENTS:", stats.damage);
 
   return stats;
 }
